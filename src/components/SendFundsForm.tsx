@@ -39,33 +39,36 @@ export default function SendFundsForm() {
 
           let newtx = {
             inputs: [{ addresses: [address] }],
-            outputs: [{ addresses: [recepAddress], value: amount }],
+            outputs: [{ addresses: [recepAddress], value: amount * 100000000 }],
           };
 
+          let txhash = '';
+
           axios
-            .post('https://api.blockcypher.com/v1/bcy/test/txs/new', JSON.stringify(newtx))
+            .post('https://api.blockcypher.com/v1/btc/test3/txs/new', JSON.stringify(newtx))
             .then(function (tmptx) {
-              // signing each of the hex-encoded string required to finalize the transaction
-              tmptx.pubkeys = [];
-              tmptx.signatures = tmptx.tosign.map(function (tosign, n) {
-                tmptx.pubkeys.push(keyPair.publicKey.toString('hex'));
+              tmptx.data.pubkeys = [];
+              tmptx.data.signatures = tmptx.data.tosign.map(function (tosign, n) {
+                tmptx.data.pubkeys.push(keyPair.publicKey.toString('hex'));
                 return bitcoin.script.signature
                   .encode(keyPair.sign(Buffer.from(tosign, 'hex')), 0x01)
                   .toString('hex')
                   .slice(0, -2);
               });
-              // sending back the transaction with all the signatures to broadcast
+
               axios
-                .post('https://api.blockcypher.com/v1/bcy/test/txs/send', JSON.stringify(tmptx))
-                .done(function (finaltx) {
-                  console.log(finaltx);
+                .post(
+                  'https://api.blockcypher.com/v1/btc/test3/txs/send',
+                  JSON.stringify(tmptx.data),
+                )
+                .then(function (finaltx) {
+                  console.log(finaltx.data);
+                  txhash = finaltx.data.tx.hash;
                 })
-                .fail(function (xhr) {
-                  console.log(xhr.responseText);
+                .catch((error) => {
+                  console.log(error);
                 });
             });
-
-          let txhash = 'kek';
 
           alert(`You send ${amount} btc to address ${recepAddress}. \n Transaction id: ${txhash}`);
         })
@@ -80,7 +83,7 @@ export default function SendFundsForm() {
     <div>
       <h2>Yet Another Bitcoin Wallet</h2>
       <p>Address - {address}</p>
-      <p>Balance - {balance}</p>
+      <p>Balance - {balance / 100000000}</p>
 
       <hr />
 
